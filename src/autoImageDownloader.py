@@ -1,4 +1,6 @@
-#/u/GoldenSights
+#Credit goes to /u/GoldenSights for showing me his post data collection script.
+
+
 import datetime
 import praw
 import time
