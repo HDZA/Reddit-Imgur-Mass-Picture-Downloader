@@ -10,7 +10,7 @@ import requests
 import re
 
 
-USERAGENT = "I AM A SILLY IMAGE BOT by /u/TheEmperor"
+USERAGENT = "I AM A SILLY IMAGE AUTOMATON by /u/TheEmperor"
 print('Logging in.')
 # http://redd.it/3cm1p8
 r = praw.Reddit(user_agent = USERAGENT)
@@ -122,8 +122,10 @@ def downloadImgurImage(imageUrl, localFileName):
         with open(localFileName, 'wb') as fo:
             for chunk in response.iter_content(4096):
                 fo.write(chunk)
-    ++totalNum
+    totalNum+=1
     print("So far " ,totalNum, " of images have been downloaded")
+    
+
 
 def downloadImage(url,submission, targetSubreddit):
     imgurUrlPattern = re.compile(r'(http://i.imgur.com/(.*))(\?.*)?')
@@ -170,38 +172,38 @@ def downloadImage(url,submission, targetSubreddit):
     elif 'http://imgur.com/' in url:
         # This is an Imgur page with a single image.
         htmlSource = requests.get(submission.url)
-
-        if htmlSource.status_code ==404:
+        if htmlSource.status_code == 200:
+            if htmlSource.history and htmlSource.url != url:
+                print("The request was redirected, it must be an older link")
+                print("This is the link as it stands now. ", htmlSource.url)
+                downloadImage(htmlSource.url,submission,targetSubreddit)
+                return
+            htmlSource = htmlSource.text
+            soup = BeautifulSoup(htmlSource, "lxml")
+            print("This is the url that the program is attempting to download.", url)
+            try:
+                imageUrl = soup.select('link[rel=image_src]')[0].get('href')
+            except IndexError:
+                imageUrl = soup.find('meta', {'property' : 'og:image'})['content'] #The page has no image_src property  to get the link from so we go for the og:image property . 
+            print("This is the image url that we've got so far: ",imageUrl)
+            print("This is the image url that we've got so far: ",imageUrl)
+            
+            if imageUrl[0].startswith('//'):
+                # if no schema is supplied in the url, prepend 'http:' to it
+                imageUrl = 'http:' + imageUrl
+    
+            if '?' in imageUrl:
+                imageFile = imageUrl[imageUrl.rfind('/') + 1:imageUrl.rfind('?')]
+            else:
+                imageFile = imageUrl[imageUrl.rfind('/') + 1:]
+    
+            localFileName = 'reddit_%s_%s_album_None_imgur_%s' % (targetSubreddit, submission.id, imageFile)
+            if '/' in url:
+                    localFileName.replace('/', '')
+            downloadImgurImage(imageUrl, localFileName)
+        else:
             print("This image or collection of images no longer exist!")
             return
-        if htmlSource.history:
-            print("The request was redirected, it must be an older link")
-            downloadImage(htmlSource.url,submission,targetSubreddit)
-            return
-        htmlSource = htmlSource.text
-        soup = BeautifulSoup(htmlSource, "lxml")
-        print("This is the url that the program is attempting to download.", url)
-        try:
-            imageUrl = soup.select('link[rel=image_src]')[0].get('href')
-        except IndexError:
-            imageUrl = soup.find('meta', {'property' : 'og:image'})['content'] #The page has no image_src property  to get the link from so we go for the og:image property . 
-        print("This is the image url that we've got so far: ",imageUrl)
-        print("This is the image url that we've got so far: ",imageUrl)
-        
-        if imageUrl[0].startswith('//'):
-            # if no schema is supplied in the url, prepend 'http:' to it
-            imageUrl = 'http:' + imageUrl
-
-        if '?' in imageUrl:
-            imageFile = imageUrl[imageUrl.rfind('/') + 1:imageUrl.rfind('?')]
-        else:
-            imageFile = imageUrl[imageUrl.rfind('/') + 1:]
-
-        localFileName = 'reddit_%s_%s_album_None_imgur_%s' % (targetSubreddit, submission.id, imageFile)
-        if '/' in url:
-                localFileName.replace('/', '')
-        downloadImgurImage(imageUrl, localFileName)
-    
     
 
 
@@ -216,6 +218,8 @@ def main():
         upper_date = int(humanToUnix(upper_date))
     get_all_posts(target_subreddit, lower_date, upper_date)
     print("Mass download complete!")
+    global r
+    r.c
 if __name__ == "__main__":
     main()
 
