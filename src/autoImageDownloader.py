@@ -218,8 +218,6 @@ def main():
         upper_date = int(humanToUnix(upper_date))
     get_all_posts(target_subreddit, lower_date, upper_date)
     print("Mass download complete!")
-    global r
-    r.c
 if __name__ == "__main__":
     main()
 
