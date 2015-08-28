@@ -122,6 +122,7 @@ def downloadImgurImage(imageUrl, localFileName):
         with open(localFileName, 'wb') as fo:
             for chunk in response.iter_content(4096):
                 fo.write(chunk)
+    global totalNum
     totalNum+=1
     print("So far " ,totalNum, " of images have been downloaded")
     
