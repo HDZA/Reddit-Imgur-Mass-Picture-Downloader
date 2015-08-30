@@ -8,10 +8,11 @@ import traceback
 from bs4 import BeautifulSoup
 import requests
 import re
-
+from PIL import Image
+import os
+import sys
 
 USERAGENT = "I AM A SILLY IMAGE AUTOMATON by /u/TheEmperor"
-print('Logging in.')
 # http://redd.it/3cm1p8
 r = praw.Reddit(user_agent = USERAGENT)
 totalNum= 0;
@@ -206,20 +207,96 @@ def downloadImage(url,submission, targetSubreddit):
             print("This image or collection of images no longer exist!")
             return
     
+def dhash(image, hash_size = 8):
+    #Grayscale and shrink the image down.
+    image=image.convert('L').resize(
+        (hash_size + 1, hash_size),
+        Image.ANTIALIAS
+    )
+    
+    
+    #Compare the adjacent pixels
+    difference = []
+    for row in range(hash_size):
+        for col in range(hash_size):
+            pixel_left = image.getpixel((col,row))
+            pixel_right = image.getpixel((col+1, row))
+            difference.append(pixel_left > pixel_right)
+    
+    #Convert the binary array to a hexadecimal string.
+    decimal_value = 0;
+    hex_string = []
+    for index, value in enumerate(difference):
+        if value:
+            decimal_value += 2**(index % 8)
+        if (index % 8) == 7:
+            hex_string.append(hex(decimal_value)[2:].rjust(2, '0'))
+            decimal_value = 0
+            
+    return ''.join(hex_string)
+
+def hamming_distance(s1, s2):
+    # Return the Hamming distance between equal-length sequences
+    if len(s1) != len(s2):
+        raise ValueError("Undefined for sequences of unequal length")
+    return float(sum(ch1 != ch2 for ch1, ch2 in zip(s1, s2)))
+
+def checkForDupes():
+    imageHashes = {}
+    thingsToDelete = []
+    MINIMUM_HAMMING_DISTANCE  = .9 #An arbitrary number can change it later if it turns out i'm getting false positives. 
+    imgur_removed_picture_hash = "6f68969ad0218e0e" #I can't tell the difference between regular pictures and imgurs replaced pictures through source code scraping. This is hash from a removed image picture. Use it to check for others since they're all similar.
+    
+    for i in os.listdir(os.getcwd()):
+        if i.endswith(".jpg") or i.endswith(".jpeg") or i.endswith(".png") or i.endswith(".gif") or i.endswith(".apng"): #All the image types allowed by imgur. Anything not recognized just gets converted to png anyway.
+            imageHash = dhash(Image.open(i))
+            if hamming_distance(imageHash, imgur_removed_picture_hash) < MINIMUM_HAMMING_DISTANCE: #Don't bother adding images that have been confirmed to be imgur auto removed images. Just append them to the thingsToDelete list.
+                thingsToDelete.append(i)
+            else:
+                imageHashes[i] = dhash(Image.open(i))
+            
+            
+    
+    for original in imageHashes:
+        if original in thingsToDelete:
+            continue
+        for comparason in imageHashes:
+            if original == comparason:
+                continue
+            elif comparason in thingsToDelete:
+                continue
+            elif original == comparason:
+                print ("The dupe function thinks that " + original + " and " + comparason + " are exact dupes of each other")
+                thingsToDelete.apend(comparason)
+            elif hamming_distance(imageHashes[original], imageHashes[comparason]) < MINIMUM_HAMMING_DISTANCE: #The closer to 0 the more similar the images are.
+                print ("The dupe function thinks that " + original + " and " + comparason + " are near dupes of each other " + " " + str(hamming_distance(imageHashes[original], imageHashes[comparason])))
+                print ("The original hash is " + imageHashes[original] + " and " + imageHashes[comparason])
+                thingsToDelete.append(comparason)
+    for image in thingsToDelete:
+        print( "Deleting..." + image)
+        os.remove(image)
 
 
 def main():
+ 
     print("Welcome to the reddit mass imgur downloader.")
-    target_subreddit = input("Please input the name of the subreddit you want to download from: ")
-    lower_date = input("Enter the date you want the program to start downloading from in the format d/m/y. If you want to start from the subreddit's creation press enter: ")
-    upper_date = input("Enter the date you want the program to limit its downloading in the format d/m/y. If you want the upper bound to be today press enter: ")
-    if lower_date != "":
-        lower_date = int(humanToUnix(lower_date))
-    if upper_date != "":
-        upper_date = int(humanToUnix(upper_date))
-    get_all_posts(target_subreddit, lower_date, upper_date)
-    print("Mass download complete!")
+    if len(sys.argv) > 1 and sys.argv[1] == "-C":
+        print("Welcome to the reddit mass imgur downloader dupe detection function!")
+        print("This is an experimental feature. Please be prepared for hiccups")
+        print("Beginning image dupe detection process!")
+        checkForDupes()
+    else:
+        target_subreddit = input("Please input the name of the subreddit you want to download from: ")
+        lower_date = input("Enter the date you want the program to start downloading from in the format d/m/y. If you want to start from the subreddit's creation press enter: ")
+        upper_date = input("Enter the date you want the program to limit its downloading in the format d/m/y. If you want the upper bound to be today press enter: ")
+        if lower_date != "":
+            lower_date = int(humanToUnix(lower_date))
+        if upper_date != "":
+            upper_date = int(humanToUnix(upper_date))
+        get_all_posts(target_subreddit, lower_date, upper_date)
+        print("Mass download complete!")
 if __name__ == "__main__":
     main()
+
 
 

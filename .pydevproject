@@ -8,5 +8,6 @@
 <pydev_pathproperty name="org.python.pydev.PROJECT_EXTERNAL_SOURCE_PATH">
 <path>/usr/local/lib/python3.4/dist-packages/praw</path>
 <path>/usr/local/lib/python3.4/dist-packages/bs4</path>
+<path>/usr/local/lib/python3.4/dist-packages/PIL</path>
 </pydev_pathproperty>
 </pydev_project>
