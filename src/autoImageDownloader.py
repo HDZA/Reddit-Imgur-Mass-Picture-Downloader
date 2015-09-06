@@ -11,6 +11,8 @@ import re
 from PIL import Image
 import os
 import sys
+import warnings
+warnings.filterwarnings("ignore")
 
 USERAGENT = "I AM A SILLY IMAGE AUTOMATON by /u/TheEmperor"
 # http://redd.it/3cm1p8
@@ -222,7 +224,7 @@ def dhash(image, hash_size = 8):
             pixel_left = image.getpixel((col,row))
             pixel_right = image.getpixel((col+1, row))
             difference.append(pixel_left > pixel_right)
-    
+    image.close()       
     #Convert the binary array to a hexadecimal string.
     decimal_value = 0;
     hex_string = []
@@ -246,14 +248,24 @@ def checkForDupes():
     thingsToDelete = []
     MINIMUM_HAMMING_DISTANCE  = .9 #An arbitrary number can change it later if it turns out i'm getting false positives. 
     imgur_removed_picture_hash = "6f68969ad0218e0e" #I can't tell the difference between regular pictures and imgurs replaced pictures through source code scraping. This is hash from a removed image picture. Use it to check for others since they're all similar.
-    
+    totalPics = 1
     for i in os.listdir(os.getcwd()):
         if i.endswith(".jpg") or i.endswith(".jpeg") or i.endswith(".png") or i.endswith(".gif") or i.endswith(".apng"): #All the image types allowed by imgur. Anything not recognized just gets converted to png anyway.
-            imageHash = dhash(Image.open(i))
+            try:
+                picture = Image.open(i)
+            except Exception:
+                print("For some reason the picture cannot be opened properly. This is usually because the OS does not recognize the image.")
+                continue
+            imageHash = dhash(picture)
             if hamming_distance(imageHash, imgur_removed_picture_hash) < MINIMUM_HAMMING_DISTANCE: #Don't bother adding images that have been confirmed to be imgur auto removed images. Just append them to the thingsToDelete list.
                 thingsToDelete.append(i)
             else:
-                imageHashes[i] = dhash(Image.open(i))
+                imageHashes[i] = imageHash
+        picture.close()
+        print("So far " + str(totalPics) + " have been proccessed, the current pic in progress is... " + i)
+        totalPics+=1
+
+        
             
             
     
