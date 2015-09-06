@@ -1,7 +1,7 @@
 # Reddit-Imgur-Mass-Picture-Downloader
   This python script will pull every single post made between two specified dates and then use the URLs in those posts to scrape Imgur for the linked pictures. The resulting photos will be placed in what ever directory the script resides in.
 ##Requirements:
-  BeautifulSoup, PRAW. Python 3.0+
+  BeautifulSoup, PRAW, Pillow, Python 3.0+
 ##How To Use:
   When the script is run it will ask what subreddit you with to download from. Simply type it in(case sensitive). The program itself will prompt you for the start and end dates. 
 ##A Word on Subreddits:
