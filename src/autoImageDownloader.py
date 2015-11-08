@@ -20,7 +20,7 @@ r = praw.Reddit(user_agent = USERAGENT)
 totalNum= 0;
 UNIX_TIME_IMGUR_CREATION = 1235347200 #Imgur wasn't launched until February 23, 2009. There's no point in doing any search queries before this time.
 
-def get_all_posts(subreddit, lower=None, maxupper=None, interval=86400, usermode=False):
+def get_all_posts(subreddit, lower=None, maxupper=None, tags_to_ignore = "",  interval=86400, usermode=False ):
 
     offset = -time.timezone
 
@@ -75,9 +75,15 @@ def get_all_posts(subreddit, lower=None, maxupper=None, interval=86400, usermode
         searchresults.reverse()
         print([i.id for i in searchresults])
         print()
+        
         for i in searchresults:
-            if("imgur" in i.url):
+            if("imgur" in i.url and len(tags_to_ignore) == 0): #If the user supplied an empty tag selection just run this check. 
                 downloadImage(i.url,i, subreddit)
+            elif("imgur" in i.url):
+                split_title = i.title.split();
+                if(tags_to_ignore in split_title): #If the title contains any words in the tags_to_ignore list then we skip it and don't bother downloading.
+                    print(i.title + " contains words listed in the user's do not download tags")
+                    continue
 
         itemsfound = len(searchresults)
         itemcount += itemsfound
@@ -247,7 +253,7 @@ def checkForDupes():
     imageHashes = {}
     thingsToDelete = []
     MINIMUM_HAMMING_DISTANCE  = .9 #An arbitrary number can change it later if it turns out i'm getting false positives. 
-    imgur_removed_picture_hash = "6f68969ad0218e0e" #I can't tell the difference between regular pictures and imgurs replaced pictures through source code scraping. This is hash from a removed image picture. Use it to check for others since they're all similar.
+    IMGUR_REMOVED_PICTURE_HASH = "6f68969ad0218e0e" #I can't tell the difference between regular pictures and imgurs replaced pictures through source code scraping. This is hash from a removed image picture. Use it to check for others since they're all similar.
     totalPics = 1
     for i in os.listdir(os.getcwd()):
         if i.endswith(".jpg") or i.endswith(".jpeg") or i.endswith(".png") or i.endswith(".gif") or i.endswith(".apng"): #All the image types allowed by imgur. Anything not recognized just gets converted to png anyway.
@@ -257,7 +263,7 @@ def checkForDupes():
                 print("For some reason the picture cannot be opened properly. This is usually because the OS does not recognize the image.")
                 continue
             imageHash = dhash(picture)
-            if hamming_distance(imageHash, imgur_removed_picture_hash) < MINIMUM_HAMMING_DISTANCE: #Don't bother adding images that have been confirmed to be imgur auto removed images. Just append them to the thingsToDelete list.
+            if hamming_distance(imageHash, IMGUR_REMOVED_PICTURE_HASH) < MINIMUM_HAMMING_DISTANCE: #Don't bother adding images that have been confirmed to be imgur auto removed images. Just append them to the thingsToDelete list.
                 thingsToDelete.append(i)
             else:
                 imageHashes[i] = imageHash
@@ -301,11 +307,12 @@ def main():
         target_subreddit = input("Please input the name of the subreddit you want to download from: ")
         lower_date = input("Enter the date you want the program to start downloading from in the format d/m/y. If you want to start from the subreddit's creation press enter: ")
         upper_date = input("Enter the date you want the program to limit its downloading in the format d/m/y. If you want the upper bound to be today press enter: ")
+        tags_to_ignore = input("Please input any words you want to use to filter out images. Seperate tags with a space. If you have no tags press enter: ")
         if lower_date != "":
             lower_date = int(humanToUnix(lower_date))
         if upper_date != "":
             upper_date = int(humanToUnix(upper_date))
-        get_all_posts(target_subreddit, lower_date, upper_date)
+        get_all_posts(target_subreddit, lower_date, upper_date, tags_to_ignore)
         print("Mass download complete!")
 if __name__ == "__main__":
     main()
